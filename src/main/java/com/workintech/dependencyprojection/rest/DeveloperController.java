@@ -1,12 +1,14 @@
 package com.workintech.dependencyprojection.rest;
 
 
+import com.workintech.dependencyprojection.mapping.DeveloperResponse;
 import com.workintech.dependencyprojection.model.Developer;
 import com.workintech.dependencyprojection.model.JuniorDeveloper;
 import com.workintech.dependencyprojection.model.MidDeveloper;
 import com.workintech.dependencyprojection.model.SeniorDeveloper;
 import com.workintech.dependencyprojection.tax.DeveloperTax;
 import com.workintech.dependencyprojection.tax.Taxable;
+import com.workintech.dependencyprojection.validation.DeveloperValidation;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -37,18 +39,35 @@ public class DeveloperController {
         return  developers.values().stream().toList();
     }
     @GetMapping("/{id}")
-    public Developer getById(@PathVariable int id){
-        return developers.get(id);
+    public DeveloperResponse getById(@PathVariable int id){
+        if(!DeveloperValidation.isIdValid(id)){
+            return new DeveloperResponse(null, "Id is not valid", 400);
+        }
+        if(!developers.containsKey(id)){
+            return new DeveloperResponse(null,
+                    "Developer with given id is not exist: " + id, 400);
+        }
+        return new DeveloperResponse(developers.get(id), "Success", 200);
+
     }
 
     @PostMapping("/")
-  public Developer save(@RequestBody Developer developer){
-         Developer saveDeveloper=createDeveloper(developer);
-         if(saveDeveloper==null){
-
-         }
-         developers.put(developer.getId(), saveDeveloper);
-         return developers.get(developer.getId());
+  public DeveloperResponse save(@RequestBody Developer developer){
+         Developer savedDeveloper=createDeveloper(developer);
+        if(savedDeveloper == null){
+            return new DeveloperResponse(null,
+                    "Developer with given experience is not valid", 400);
+        }
+        if(developers.containsKey(developer.getId())){
+            return new DeveloperResponse(null,
+                    "Developer with given id already exist: " + developer.getId(), 400);
+        }
+        if(!DeveloperValidation.isDeveloperValid(developer)){
+            return new DeveloperResponse(null,
+                    "Developer credentials are not valid", 400);
+        }
+        developers.put(developer.getId(), savedDeveloper);
+        return new DeveloperResponse(developers.get(developer.getId()), "Succes", 201);
   }
   @PutMapping("/{id}")
   public Developer update(@PathVariable int id,@RequestBody Developer developer){
